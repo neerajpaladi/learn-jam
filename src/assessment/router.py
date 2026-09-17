@@ -23,7 +23,7 @@ def submit_answer(
     if not profile:
         raise HTTPException(status_code=404, detail="Student profile not found")
 
-    is_correct = (submission.selected_option_index == 0)  # Correct option check
+    is_correct = submission.selected_option_index == submission.correct_option_index
 
     # Update IRT Theta & Concept Mastery
     prev_theta = profile.ability_score
@@ -52,7 +52,7 @@ def submit_answer(
 
     return AssessmentResult(
         is_correct=is_correct,
-        correct_option_index=0,
+        correct_option_index=submission.correct_option_index,
         previous_theta=prev_theta,
         new_theta=new_theta,
         previous_mastery=prev_mastery,

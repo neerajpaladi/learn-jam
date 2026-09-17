@@ -27,9 +27,13 @@ import {
 } from "lucide-react";
 
 export function ProfilePage() {
-  const { profile, setProfile, setHasProfile } = useApp();
+  const { profile, setProfile, setHasProfile, syncProfile, isAuthenticated, authError, login, register, logout } = useApp();
   const [form, setForm] = useState<StudentProfile>(profile);
   const [saved, setSaved] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
 
   const update = <K extends keyof StudentProfile>(key: K, value: StudentProfile[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -47,6 +51,7 @@ export function ProfilePage() {
   };
 
   const handleSave = () => {
+    void syncProfile(form);
     setProfile(form);
     setHasProfile(true);
     setSaved(true);
@@ -55,6 +60,32 @@ export function ProfilePage() {
 
   return (
     <div className="max-w-3xl space-y-6">
+      <Card>
+        <CardHeader
+          title={isAuthenticated ? "Backend connected" : "Connect your account"}
+          subtitle={isAuthenticated ? "Your profile and assessment progress sync with the learning API." : "Sign in to sync this profile with the learning API."}
+          icon={<UserCircle size={20} />}
+        />
+        <CardBody>
+          {isAuthenticated ? <Button variant="secondary" onClick={logout}>Sign out</Button> : (
+            <form className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]" onSubmit={async (event) => {
+              event.preventDefault();
+              setAuthBusy(true);
+              try {
+                await (authMode === "login" ? login(email, password) : register(email, password));
+              } finally {
+                setAuthBusy(false);
+              }
+            }}>
+              <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required placeholder="Email" className="px-4 py-2.5 rounded-xl border border-slate-300 text-sm" />
+              <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" required minLength={6} placeholder="Password" className="px-4 py-2.5 rounded-xl border border-slate-300 text-sm" />
+              <Button type="submit" disabled={authBusy}>{authBusy ? "Connecting..." : authMode === "login" ? "Sign in" : "Create account"}</Button>
+              <button type="button" onClick={() => setAuthMode(authMode === "login" ? "register" : "login")} className="text-left text-sm text-blue-600 sm:col-span-3">{authMode === "login" ? "Need an account? Register" : "Already registered? Sign in"}</button>
+              {authError && <p className="text-sm text-red-600 sm:col-span-3">{authError}</p>}
+            </form>
+          )}
+        </CardBody>
+      </Card>
       <Card>
         <CardHeader
           title="Student Profile"

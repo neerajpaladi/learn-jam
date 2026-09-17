@@ -14,6 +14,7 @@ class AnswerSubmission(BaseModel):
     question_id: str
     concept_id: str
     selected_option_index: int
+    correct_option_index: int
     difficulty: float
     discrimination: float = 1.0
 

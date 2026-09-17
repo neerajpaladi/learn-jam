@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 export function AssessmentPage() {
-  const { addAssessmentResults, scores } = useApp();
+  const { addAssessmentResults, scores, submitAnswer } = useApp();
   const [started, setStarted] = useState(false);
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -31,7 +31,7 @@ export function AssessmentPage() {
     setAnswers((prev) => ({ ...prev, [questionId]: optionIndex }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Calculate scores per skill
     const skillQuestions = new Map<string, AssessmentQuestion[]>();
     for (const q of questions) {
@@ -59,6 +59,13 @@ export function AssessmentPage() {
 
     setResults(newResults);
     addAssessmentResults(newResults);
+    await Promise.all(questions.map((question) => submitAnswer({
+      questionId: question.id,
+      conceptId: question.skill,
+      selectedOptionIndex: answers[question.id],
+      correctOptionIndex: question.correctAnswer,
+      difficulty: 0,
+    })));
     setSubmitted(true);
   };
 

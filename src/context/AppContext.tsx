@@ -25,6 +25,7 @@ import {
   calculateSkillProgress,
 } from "@/lib/engine";
 import { generateLearningPath } from "@/lib/learningPath";
+import { api, type ApiProfile } from "@/lib/api";
 
 interface AppContextValue {
   profile: StudentProfile;
@@ -45,6 +46,13 @@ interface AppContextValue {
   setCurrentPage: (p: PageKey) => void;
   hasProfile: boolean;
   setHasProfile: (v: boolean) => void;
+  isAuthenticated: boolean;
+  authError: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
+  logout: () => void;
+  syncProfile: (p: StudentProfile) => Promise<void>;
+  submitAnswer: (answer: { questionId: string; conceptId: string; selectedOptionIndex: number; correctOptionIndex: number; difficulty: number }) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -56,6 +64,62 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [completedTopics, setCompletedTopics] = useState<string[]>(demoCompletedTopics);
   const [currentPage, setCurrentPage] = useState<PageKey>("dashboard");
   const [hasProfile, setHasProfile] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(Boolean(api.getToken()));
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  const applyApiProfile = (remote: ApiProfile) => {
+    setProfile((current) => ({
+      ...current,
+      learningGoal: remote.target_goals[0] ?? current.learningGoal,
+      preferredLearningStyle: remote.preferred_format,
+    }));
+  };
+
+  const login = async (email: string, password: string) => {
+    try {
+      const token = await api.login(email, password);
+      applyApiProfile(await api.getProfile(token));
+      setIsAuthenticated(true);
+      setAuthError(null);
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Unable to log in");
+      throw error;
+    }
+  };
+
+  const register = async (email: string, password: string) => {
+    await api.register(email, password);
+    await login(email, password);
+  };
+
+  const logout = () => {
+    api.logout();
+    setIsAuthenticated(false);
+  };
+
+  const syncProfile = async (nextProfile: StudentProfile) => {
+    setProfile(nextProfile);
+    const token = api.getToken();
+    if (!token) return;
+    await api.updateProfile(token, {
+      target_goals: [nextProfile.learningGoal],
+      preferred_format: nextProfile.preferredLearningStyle,
+      learning_pace: nextProfile.studyHoursPerDay >= 5 ? "fast" : nextProfile.studyHoursPerDay <= 2 ? "slow" : "medium",
+    });
+  };
+
+  const submitAnswer = async (answer: { questionId: string; conceptId: string; selectedOptionIndex: number; correctOptionIndex: number; difficulty: number }) => {
+    const token = api.getToken();
+    if (!token) return;
+    await api.submitAnswer(token, {
+      question_id: answer.questionId,
+      concept_id: answer.conceptId,
+      selected_option_index: answer.selectedOptionIndex,
+      correct_option_index: answer.correctOptionIndex,
+      difficulty: answer.difficulty,
+      discrimination: 1,
+    });
+  };
 
   const scores = useMemo(() => scoresFromResults(assessmentResults), [assessmentResults]);
 
@@ -116,6 +180,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCurrentPage,
     hasProfile,
     setHasProfile,
+    isAuthenticated,
+    authError,
+    login,
+    register,
+    logout,
+    syncProfile,
+    submitAnswer,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
