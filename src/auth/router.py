@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 from src.db.base import get_session
-from src.db.models import UserTable
+from src.db.models import UserTable, StudentProfileTable
 from src.models.user import UserCreate, UserLogin, TokenResponse, UserOut
 from src.auth.security import hash_password, verify_password, create_access_token
 
@@ -18,6 +18,7 @@ def register(user_data: UserCreate, session: Session = Depends(get_session)):
             detail="Email already registered"
         )
     
+    # 1. Register base User
     new_user = UserTable(
         email=user_data.email,
         hashed_password=hash_password(user_data.password)
@@ -25,6 +26,12 @@ def register(user_data: UserCreate, session: Session = Depends(get_session)):
     session.add(new_user)
     session.commit()
     session.refresh(new_user)
+    
+    # 2. Automatically create linked Student Profile
+    profile = StudentProfileTable(user_id=new_user.id)
+    session.add(profile)
+    session.commit()
+    
     return new_user
 
 @router.post("/login", response_model=TokenResponse)

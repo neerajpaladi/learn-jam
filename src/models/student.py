@@ -1,14 +1,10 @@
-from pydantic import BaseModel, Field
-from typing import Dict, List, Optional
+from pydantic import BaseModel
+from typing import List, Dict, Optional
 
 class StudentProfileCreate(BaseModel):
-    target_goals: List[str] = Field(default_factory=list, example=["Python Syntax", "Data Structures"])
-    preferred_format: str = Field(default="mixed", example="visual")  # visual, textual, interactive, mixed
-    learning_pace: str = Field(default="medium", example="medium")    # slow, medium, fast
-
-class SkillMasteryUpdate(BaseModel):
-    concept_id: str
-    score: float = Field(ge=0.0, le=1.0)  # Mastery between 0.0 and 1.0
+    target_goals: List[str] = []
+    preferred_format: str = "mixed"
+    learning_pace: str = "medium"
 
 class StudentProfileOut(BaseModel):
     id: str
@@ -16,5 +12,8 @@ class StudentProfileOut(BaseModel):
     target_goals: List[str]
     preferred_format: str
     learning_pace: str
-    ability_score: float                  # IRT Theta (\theta) value
-    mastery_map: Dict[str, float]         # Map of concept_id -> score (e.g. {"variables": 0.85})
+    ability_score: float
+    mastery_map: Dict[str, float]
+    current_streak: int
+    longest_streak: int
+    last_active_date: Optional[str]
