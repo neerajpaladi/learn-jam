@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.vite/
+*.local
+.env
+.env.*
+!.env.example
+
+__pycache__/
+*.py[cod]
+*.db
+
+.bolt/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
